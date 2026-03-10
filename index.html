@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Panel</title>
+
+    <style>
+
+        body{
+            margin:0;
+            height:100vh;
+            background:#111827;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            font-family:Segoe UI;
+            color:white;
+        }
+
+        .container{
+            width:380px;
+            background:#1f2937;
+            padding:30px;
+            border-radius:20px;
+            box-shadow:0 20px 50px rgba(0,0,0,0.6);
+        }
+
+        .header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:30px;
+        }
+
+        .title{
+            font-size:22px;
+            font-weight:bold;
+        }
+
+        .status{
+            font-size:13px;
+            color:#60a5fa;
+        }
+
+        .device{
+            background:#111827;
+            padding:25px;
+            border-radius:15px;
+            text-align:center;
+            margin-bottom:25px;
+        }
+
+        .led-indicator{
+            width:30px;
+            height:30px;
+            border-radius:50%;
+            background:#374151;
+            margin:10px auto;
+            transition:0.3s;
+        }
+
+        .led-active{
+            background:#22c55e;
+            box-shadow:0 0 15px #22c55e;
+        }
+
+        .buttons{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:15px;
+        }
+
+        button{
+            padding:18px;
+            border:none;
+            border-radius:12px;
+            font-size:15px;
+            font-weight:bold;
+            cursor:pointer;
+            transition:0.2s;
+        }
+
+        .btn-on{
+            background:#22c55e;
+            color:white;
+        }
+
+        .btn-off{
+            background:#ef4444;
+            color:white;
+        }
+
+        button:hover{
+            transform:scale(1.05);
+        }
+
+        button:active{
+            transform:scale(0.95);
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <div class="title">ESP32</div>
+        <div class="status">miron_shtyrm</div>
+    </div>
+
+    <div class="device">
+
+        <div>LED Status</div>
+        <div id="led-viz" class="led-indicator"></div>
+
+    </div>
+
+    <div class="buttons">
+        <button class="btn-on" onclick="sendCommand('on')">Ввімкнути</button>
+        <button class="btn-off" onclick="sendCommand('off')">Вимкнути</button>
+    </div>
+
+</div>
+
+<script>
+
+    async function updateStatus(){
+        try{
+
+            const response = await fetch('/api/status');
+            const data = await response.json();
+            const led = document.getElementById('led-viz');
+
+            if(data.led_on){
+                led.classList.add('led-active');
+            }else{
+                led.classList.remove('led-active');
+            }
+
+        }catch(e){
+            console.error("Помилка отримання статусу");
+        }
+    }
+
+    async function sendCommand(cmd){
+
+        try{
+
+            await fetch('/api/control',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({command:cmd})
+            });
+
+            updateStatus();
+
+        }catch(e){
+            alert("Помилка зв'язку з ESP32");
+        }
+
+    }
+
+    setInterval(updateStatus,2000);
+    updateStatus();
+
+</script>
+
+</body>
+</html>
+ 
