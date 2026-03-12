@@ -1,207 +1,123 @@
-#include <Arduino.h> 
+#include <Arduino.h>
+#include <WiFi.h>
+#include <ESPAsyncWebServer.h>
+#include <WebSocketsServer.h>
+#include <LittleFS.h>
+#include <Wire.h>
+#include <Adafruit_BME280.h>
+#include <ArduinoJson.h>
 
-#include <WiFi.h> 
+// BME280
+Adafruit_BME280 bme;
 
-#include <ESPAsyncWebServer.h> 
+// Wi-Fi налаштування
+const char* ssid = "miron_shtyrm";
+const char* password = "miron2019";
 
-#include <WebSocketsServer.h> 
+// Сервери
+AsyncWebServer server(80);
+WebSocketsServer webSocket = WebSocketsServer(81);
 
-#include <LittleFS.h> 
+// Обробник WebSocket
+void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
 
-#include <DHT.h> 
+    switch(type) {
 
-#include <ArduinoJson.h> 
+        case WStype_DISCONNECTED:
+            Serial.printf("[%u] Клієнт відключився\n", num);
+            break;
 
- 
+        case WStype_CONNECTED:
+            Serial.printf("[%u] Клієнт підключився з IP: %s\n",
+            num, webSocket.remoteIP(num).toString().c_str());
+            break;
 
-// Налаштування DHT11 
+        case WStype_TEXT:
+            Serial.printf("[%u] Отримано повідомлення: %s\n", num, payload);
+            break;
 
-#define DHTPIN 4        // DATA пін підключи до D4 
+        default:
+            break;
+    }
+}
 
-#define DHTTYPE DHT11 
+void setup() {
 
-DHT dht(DHTPIN, DHTTYPE); 
+    Serial.begin(115200);
+    delay(1000);
 
- 
+    // I2C запуск
+    Wire.begin();
 
-// Налаштування Wi-Fi - ВПИШИ СВОЇ ДАНІ 
+    // Ініціалізація BME280
+    if (!bme.begin(0x76)) {
+        Serial.println("Помилка: BME280 не знайдено!");
+        while (1);
+    }
 
-const char* ssid = "miron_shtyrm"; 
+    // LittleFS
+    if(!LittleFS.begin(true)) {
+        Serial.println("Помилка LittleFS!");
+        return;
+    }
 
-const char* password = "miron2019"; 
+    // Підключення WiFi
+    Serial.printf("Підключення до %s ", ssid);
 
- 
+    WiFi.begin(ssid, password);
 
-AsyncWebServer server(80); 
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
 
-WebSocketsServer webSocket = WebSocketsServer(81); 
+    Serial.println("\nWi-Fi підключено!");
+    Serial.print("IP адреса ESP32: ");
+    Serial.println(WiFi.localIP());
 
- 
+    // HTML сторінка
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(LittleFS, "/index.html", "text/html");
+    });
 
-// Виправлена функція обробки подій WebSocket 
+    server.begin();
 
-void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) { 
+    // WebSocket
+    webSocket.begin();
+    webSocket.onEvent(onWebSocketEvent);
+}
 
-    switch(type) { 
+void loop() {
 
-        case WStype_DISCONNECTED: 
+    webSocket.loop();
 
-            Serial.printf("[%u] Клієнт відключився\n", num); 
+    static unsigned long lastUpdate = 0;
 
-            break; 
+    if (millis() - lastUpdate >= 2000) {
 
-        case WStype_CONNECTED: 
+        lastUpdate = millis();
 
-            Serial.printf("[%u] Клієнт підключився з IP: %s\n", num, webSocket.remoteIP(num).toString().c_str()); 
+        float humidity = bme.readHumidity();
+        float pressure = bme.readPressure() / 100.0F; // hPa
 
-            break; 
+        if (isnan(humidity) || isnan(pressure)) {
+            Serial.println("Помилка зчитування BME280!");
+            return;
+        }
 
-        case WStype_TEXT: 
+        // JSON
+        JsonDocument doc;
 
-            Serial.printf("[%u] Отримано повідомлення: %s\n", num, payload); 
+        doc["pressure"] = pressure;
+        doc["humidity"] = humidity;
 
-            break; 
+        String jsonString;
+        serializeJson(doc, jsonString);
 
-        default: 
+        // Відправка всім клієнтам
+        webSocket.broadcastTXT(jsonString);
 
-            break; 
-
-    } 
-
-} 
-
- 
-
-void setup() { 
-
-    Serial.begin(115200); 
-
-    delay(1000); 
-
-     
-
-    dht.begin(); 
-
- 
-
-    // Ініціалізація LittleFS (true - форматувати, якщо не завантажено образ) 
-
-    if(!LittleFS.begin(true)) { 
-
-        Serial.println("Помилка LittleFS! Перевірте завантаження Filesystem Image."); 
-
-        return; 
-
-    } 
-
- 
-
-    // Підключення до Wi-Fi 
-
-    Serial.printf("Підключення до %s ", ssid); 
-
-    WiFi.begin(ssid, password); 
-
-    while (WiFi.status() != WL_CONNECTED) { 
-
-        delay(500); 
-
-        Serial.print("."); 
-
-    } 
-
-    Serial.println("\nWi-Fi підключено!"); 
-
-    Serial.print("IP адреса ESP32: "); 
-
-    Serial.println(WiFi.localIP()); 
-
- 
-
-    // Налаштування маршруту для HTML сторінки 
-
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){ 
-
-        request->send(LittleFS, "/index.html", "text/html"); 
-
-    }); 
-
- 
-
-    server.begin(); 
-
-     
-
-    // Налаштування WebSocket 
-
-    webSocket.begin(); 
-
-    webSocket.onEvent(onWebSocketEvent); 
-
-} 
-
- 
-
-void loop() { 
-
-    webSocket.loop(); 
-
- 
-
-    // Читаємо датчик кожні 2 секунди 
-
-    static unsigned long lastUpdate = 0; 
-
-    if (millis() - lastUpdate >= 2000) { 
-
-        lastUpdate = millis(); 
-
- 
-
-        float h = dht.readHumidity(); 
-
-        float t = dht.readTemperature(); 
-
- 
-
-        // Перевірка на помилки зчитування 
-
-        if (isnan(h) || isnan(t)) { 
-
-            Serial.println("Помилка зчитування з DHT11!"); 
-
-            return; 
-
-        } 
-
- 
-
-        // Створення JSON об'єкта 
-
-        JsonDocument doc; 
-
-        doc["temp"] = t; 
-
-        doc["hum"] = h; 
-
- 
-
-        String jsonString; 
-
-        serializeJson(doc, jsonString); 
-
- 
-
-        // Відправка всім підключеним клієнтам 
-
-        webSocket.broadcastTXT(jsonString); 
-
-         
-
-        Serial.print("Відправлено дані: "); 
-
-        Serial.println(jsonString); 
-
-    } 
-
-} 
+        Serial.print("Відправлено дані: ");
+        Serial.println(jsonString);
+    }
+}
