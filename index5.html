@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Core v2.0</title>
+    <style>
+        :root {
+            /* Нова палітра: неоновий блакитний для акцентів та глибокий чорний */
+            --accent-cyan: #00f2ff;
+            --secure-green: #00ff41;
+            --warn-red: #ff003c;
+            --terminal-bg: #050505;
+            --panel-bg: rgba(10, 10, 10, 0.85);
+        }
+
+        body {
+            background-color: var(--terminal-bg);
+            color: var(--accent-cyan);
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            /* Ефект сітки на фоні */
+            background-image:
+                    linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .terminal {
+            width: 95%;
+            max-width: 550px;
+            border: 1px solid var(--accent-cyan);
+            padding: 30px;
+            /* Ефект скла (Glassmorphism) */
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 40px rgba(0, 242, 255, 0.15), inset 0 0 10px rgba(0, 242, 255, 0.05);
+            position: relative;
+            border-radius: 4px;
+        }
+
+        /* Кутові декоративні елементи */
+        .terminal::before {
+            content: "";
+            position: absolute;
+            top: -2px; left: -2px; width: 20px; height: 20px;
+            border-top: 3px solid var(--accent-cyan);
+            border-left: 3px solid var(--accent-cyan);
+        }
+
+        .header {
+            border-bottom: 1px solid rgba(0, 242, 255, 0.3);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            letter-spacing: 2px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .status-container {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 4px solid var(--accent-cyan);
+        }
+
+        .led-status {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Анімований індикатор */
+        .dot {
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .active { color: var(--secure-green); text-shadow: 0 0 10px var(--secure-green); }
+        .active .dot { background-color: var(--secure-green); box-shadow: 0 0 15px var(--secure-green); animation: pulse 1.5s infinite; }
+
+        .inactive { color: #555; }
+        .inactive .dot { background-color: #333; }
+
+        .info-row {
+            font-size: 0.75rem;
+            color: rgba(0, 242, 255, 0.6);
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .btn-zone {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0% 30%);
+        }
+
+        button:hover {
+            background: rgba(0, 242, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        button:active { transform: translateY(0); }
+
+        .console {
+            background: rgba(0,0,0,0.5);
+            font-size: 0.7rem;
+            height: 80px;
+            overflow-y: hidden;
+            padding: 10px;
+            margin-top: 20px;
+            border: 1px solid rgba(0, 242, 255, 0.1);
+            font-family: monospace;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
+        /* Ефект "шуму" або сканування */
+        .scanline {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.1) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+    </style>
+</head>
+<body>
+
+<div class="terminal">
+    <div class="scanline"></div>
+    <div class="header">
+        <span>Nodes: Cluster-01</span>
+        <span id="clock">00:00:00</span>
+    </div>
+
+    <div class="status-container">
+        <div id="status-wrapper" class="led-status inactive">
+            <span class="dot"></span>
+            <span id="state-text">SYSTEM STANDBY</span>
+        </div>
+
+        <div class="info-row">
+            <span>ENCRYPTION</span>
+            <span>AES-256-GCM</span>
+        </div>
+        <div class="info-row">
+            <span>NETWORK</span>
+            <span>SECURE TUNNEL (SSL)</span>
+        </div>
+    </div>
+
+    <div class="btn-zone">
+        <button onclick="control('on')">INITIALIZE</button>
+        <button onclick="control('off')">TERMINATE</button>
+    </div>
+
+    <div class="console" id="console">
+        > SYSTEM BOOT SUCCESSFUL...<br>
+        > WAITING FOR ENCRYPTED HANDSHAKE...<br>
+    </div>
+</div>
+
+<script>
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clock').innerText = now.toLocaleTimeString('uk-UA', { hour12: false });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function log(msg) {
+        const con = document.getElementById('console');
+        const timestamp = new Date().toLocaleTimeString('uk-UA', { hour12: false });
+        con.innerHTML = `<div>[${timestamp}] ${msg}</div>` + con.innerHTML;
+    }
+
+    async function updateStatus() {
+        try {
+            // УВАГА: Якщо API недоступне, ми імітуємо помилку для консолі
+            const res = await fetch('/api/status');
+            const data = await res.json();
+            const wrapper = document.getElementById('status-wrapper');
+            const text = document.getElementById('state-text');
+
+            if (data.led_on) {
+                text.innerText = "SYSTEM ACTIVE";
+                wrapper.className = "led-status active";
+            } else {
+                text.innerText = "SYSTEM STANDBY";
+                wrapper.className = "led-status inactive";
+            }
+        } catch (e) {
+            // Видалено частий спам у консоль, якщо API немає
+        }
+    }
+
+    async function control(cmd) {
+        log("CMD SENT: " + cmd.toUpperCase());
+        try {
+            await fetch('/api/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({command: cmd})
+            });
+        } catch(e) {
+            log("ERROR: API UNREACHABLE");
+        }
+        updateStatus();
+    }
+
+    setInterval(updateStatus, 3000);
+    updateStatus();
+</script>
+
+</body>
+</html>
