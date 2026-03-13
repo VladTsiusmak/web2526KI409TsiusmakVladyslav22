@@ -1,0 +1,146 @@
+<!DOCTYPE html> 
+<html lang="uk"> 
+<head> 
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+ 
+    <title>Wi-Fi Setup</title> 
+ 
+    <style> 
+ 
+        body{ 
+            margin:0; 
+            font-family:Arial, Helvetica, sans-serif; 
+            background:linear-gradient(135deg,#0f5132,#0a2f1e); 
+            height:100vh; 
+            display:flex; 
+            justify-content:center; 
+            align-items:center; 
+            color:white; 
+        } 
+ 
+        .container{ 
+            width:100%; 
+            max-width:360px; 
+            padding:20px; 
+        } 
+ 
+        .card{ 
+            background:#ffffff; 
+            color:#1f2937; 
+            padding:30px; 
+            border-radius:18px; 
+            box-shadow:0 25px 50px rgba(0,0,0,0.35); 
+        } 
+ 
+        .title{ 
+            text-align:center; 
+            font-size:26px; 
+            font-weight:600; 
+            margin-bottom:25px; 
+            color:#16a34a; 
+        } 
+ 
+        .input-group{ 
+            margin-bottom:15px; 
+        } 
+ 
+        label{ 
+            font-size:14px; 
+            display:block; 
+            margin-bottom:5px; 
+            color:#374151; 
+        } 
+ 
+        input{ 
+            width:100%; 
+            padding:12px; 
+            border-radius:10px; 
+            border:1px solid #d1d5db; 
+            font-size:15px; 
+            outline:none; 
+            transition:0.2s; 
+        } 
+ 
+        input:focus{ 
+            border-color:#16a34a; 
+            box-shadow:0 0 0 2px rgba(22,163,74,0.2); 
+        } 
+ 
+        button{ 
+            width:100%; 
+            padding:14px; 
+            margin-top:15px; 
+            border:none; 
+            border-radius:12px; 
+            font-size:16px; 
+            font-weight:600; 
+            color:white; 
+            cursor:pointer; 
+            background:linear-gradient(90deg,#22c55e,#16a34a); 
+            transition:0.2s; 
+        } 
+ 
+        button:hover{ 
+            transform:translateY(-2px); 
+            box-shadow:0 8px 18px rgba(0,0,0,0.25); 
+        } 
+ 
+        .note{ 
+            text-align:center; 
+            font-size:13px; 
+            color:#6b7280; 
+            margin-top:15px; 
+        } 
+ 
+        .icon{ 
+            text-align:center; 
+            font-size:40px; 
+            margin-bottom:10px; 
+        } 
+ 
+    </style> 
+ 
+</head> 
+ 
+<body> 
+ 
+<div class="container"> 
+ 
+    <div class="card"> 
+ 
+        <div class="icon">📶</div> 
+ 
+        <div class="title"> 
+            Налаштування Wi-Fi 
+        </div> 
+ 
+        <form action="/save" method="POST"> 
+ 
+            <div class="input-group"> 
+                <label>Назва мережі (SSID)</label> 
+                <input type="text" name="ssid" placeholder="Tsiusmak_Setup" required> 
+            </div> 
+ 
+            <div class="input-group"> 
+                <label>Пароль</label> 
+                <input type="password" name="pass" placeholder="Введіть пароль"> 
+            </div> 
+ 
+            <button type="submit"> 
+                Зберегти та підключити 
+            </button> 
+ 
+        </form> 
+ 
+        <div class="note"> 
+            Пристрій автоматично перезавантажиться після збереження 
+        </div> 
+ 
+    </div> 
+ 
+</div> 
+ 
+</body> 
+</html> 
+ 
